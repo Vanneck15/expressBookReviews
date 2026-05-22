@@ -11,10 +11,25 @@ app.use(express.json());
 app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
 
 app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
+    // 1. Vérifier si la session contient des données d'autorisation
+    if (req.session.authorization) {
+        let token = req.session.authorization['accessToken']; // Récupérer le jeton d'accès
+        
+        // 2. Vérifier et décoder le jeton JWT
+        jwt.verify(token, "access", (err, user) => {
+            if (!err) {
+                req.user = user; // Enregistrer les infos de l'utilisateur dans la requête
+                next(); // Passer au middleware ou à la route suivante
+            } else {
+                return res.status(403).json({ message: "Utilisateur non authentifié ou jeton invalide" });
+            }
+        });
+    } else {
+        return res.status(403).json({ message: "Utilisateur non connecté" });
+    }
 });
  
-const PORT =5000;
+const PORT = 5000;
 
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
